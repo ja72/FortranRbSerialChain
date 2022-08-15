@@ -9,8 +9,8 @@ For each body the following equations are needed for the problem to be defined.
  - The kinematics relating the motion of the previous body to the motion 
 of the current body.
 
-    $$ \begin{aligned}\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}\dot{q}_{i}\\
-\boldsymbol{a}_{i} & =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}\dot{q}_{i}\\
+    $$ \begin{aligned}\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}qp_{i}\\
+\boldsymbol{a}_{i} & =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}qp_{i}\\
 \end{aligned}$$
 
  - The force balance for each body, considering the reaction force coming from the next body.
@@ -37,8 +37,8 @@ $$\begin{aligned}\vec{r}_{i} & =\vec{r}_{i-1}+R_{i-1}\vec{\ell}\\
 \vec{cg}_{i} & =\vec{r}_{i}+R_{i}\vec{cg}_{{\rm body}}\\
 {\bf I}_{i} & =\mathrm{spi}(m,I_{{\rm body}},R_{i},\vec{cg}_{i})\\
 \boldsymbol{s}_{i} & =\mathrm{twist}(\hat{k},\vec{r}_{i},0)\\
-\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}\dot{q}_{i}\\
-\boldsymbol{\kappa}_{i} & =\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}\dot{q}_{i}\\
+\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}qp_{i}\\
+\boldsymbol{\kappa}_{i} & =\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}qp_{i}\\
 \boldsymbol{w}_{i} & =\mathrm{wrench}(m\,\vec{g},\vec{cg},0)\\
 \boldsymbol{p}_{i} & =\boldsymbol{v}_{i}\times{\bf I}_{i}\boldsymbol{v}_{i}-\boldsymbol{w}_{i}
 \end{aligned}$$
@@ -68,4 +68,30 @@ Iteration from base to tip
 
 $$\boldsymbol{f}_{i}={\bf I}_{i}\boldsymbol{a}_{i}+\boldsymbol{p}_{i}+\boldsymbol{f}_{i+1}$$
 
+### Pseudo Fortranesque Code
 
+```fortran
+function calc_acc(q,qp,Q) result(qpp)
+do i=1,n
+	pos(i) = pos(i-1) + R(i-1)*i_*length
+	ori(i) = ori(i-1)*rot(k_,q(i))
+	R(i) = rot(ori(i))
+	cg(i) = pos(i) + R(i)*i_*length/2
+	s(i) = twist(k_, r(i), 0)
+	v(i) = v(i-1) + s(i)*qp(i)
+	k(i) = v(i)×s(i)*qp(i)
+	I(i) = spi(mass,mmoi_body,cg(i),ori(i))
+	w(i) = wrench(mass*g, cg(i), 0)
+	p(i) = v(i)×I(i)*v(i)-w(i)
+end do
+do i=n,1
+	A(i) = I(i) + RU(i+1)*A(i+1)
+	d(i) = p(i) + T(i+1)*Q(i+1) + RU(i+1)*(A(i+1)*k(i+1)+d(i+1))
+	T(i) = A(i)*s(i)/(dot(s(i), A(i)*s(i)))
+	RU(i) = 1 - outer(T(i), s(i))
+end do
+do i=1,n
+	qpp(i) = (Q(i)-dot(s(i), A(i)*(a(i-1)+k(i))+d(i)))/dot(s(i), A(i)*s(i))
+	a(i) = a(i-1) + s(i)*qpp(i) + k(i)
+end do
+```
