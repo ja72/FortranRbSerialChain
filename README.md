@@ -2,6 +2,7 @@
 
 Serial RB chain solver using articulated method with arrays.
 
+
 ## Problem Setup & Equations
 
 For each body the following equations are needed for the problem to be defined. 
@@ -24,7 +25,7 @@ of the current body.
 ## Problem solution
 
 Because the equations for each body depend on the previoius body motion _and_ the next body forces at the same time,
-the solution invloves a recursive procedure developed by Roy Featherstone (https://homes.cs.washington.edu/~todorov/courses/amath533/FeatherstoneOrin00.pdf)	 
+the solution invloves a recursive procedure developed by Roy Featherstone (See refernces below).
 
 There are three stages to the solution.
 
@@ -95,3 +96,8 @@ do i=1,n
 	a(i) = a(i-1) + s(i)*qpp(i) + k(i)
 end do
 ```
+
+## References
+
+ - http://gamma.cs.unc.edu/courses/robotics-f08/LEC/ArticulatedBodyDynamics.pdf
+ - https://homes.cs.washington.edu/~todorov/courses/amath533/FeatherstoneOrin00.pdf
