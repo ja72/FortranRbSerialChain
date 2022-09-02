@@ -3,6 +3,11 @@
     use mod_show
     implicit none
     
+    enum, bind(c)
+        enumerator :: revolute_joint
+        enumerator :: prismatic_joint
+    end enum
+    
     real(wp), dimension(3), parameter :: gravity = -10*j_
     
     type :: rigidbody
@@ -11,9 +16,15 @@
         real(wp) :: cg(3)
         real(wp), allocatable :: dims(:)
     contains
-        procedure :: kinematics => rb_kinematics
+        procedure :: joint => rb_new_joint
     end type
     
+    type :: joint
+        integer :: type
+        real(wp) :: pos(3), axis(3), pitch        
+        type(rigidbody), pointer :: body
+    end type
+            
     type :: kinematics
         real(wp) :: q, qp, tau
         real(wp) :: pos(3), ori(4), cg(3)
@@ -133,42 +144,71 @@
     b = h(4:6)
     u = [ v_cross(w,a), v_cross(v,a) + v_cross(w, b) ]
     end function
+        
+    function rb_new_joint(rb, type, pos, axis, pitch) result(jt)
+    class(rigidbody), intent(in), target :: rb
+    type(joint) :: jt
+    integer, intent(in) :: type
+    real(wp), intent(in) :: pos(3), axis(3)
+    real(wp), intent(in), optional :: pitch
+        jt%type = type
+        jt%pos = pos
+        jt%axis = axis
+        if( present(pitch) ) then
+            jt%pitch = pitch
+        else
+            jt%pitch = 0.0_wp
+        end if
+        jt%body => rb
+    end function
     
-    pure function rb_kinematics(rb,q,qp,tau) result(kin)
-    class(rigidbody), intent(in) :: rb
+    function jt_kinematics(jt,q,qp,tau) result(kin)
+    class(joint), intent(in) :: jt(:)
     real(wp), intent(in) :: q(:), qp(size(q)),tau(size(q))
     type(kinematics) :: kin(size(q))
-    real(wp) :: length, r_prev(3), q_prev(4), v_prev(6)
+    real(wp) :: r_prev(3), q_prev(4), v_prev(6)
     real(wp) :: w_i(6)    
+    type(rigidbody), pointer :: rb
     integer :: i, n
         n = size(q)
         
         !tex: Recursive Kinematics
         ! $$\begin{aligned}
-        !   \vec{r}_i & = \vec{r}_{i-1} + R_{i-1} \vec{\ell} \\
+        !   \vec{r}_i & = \vec{r}_{i-1} + R_{i-1} \vec{\ell} &
         !   \vec{R}_i & = \vec{R}_{i-1} \mathrm{rot}(\hat{k},q_i) \\
-        !   \vec{cg}_i & = \vec{r}_i + R_i \vec{cg}_{\rm body} \\
+        !   \vec{cg}_i & = \vec{r}_i + R_i \vec{cg}_{\rm body} &
         !   \bf{I}_i & = \mathrm{spi}(m, I_{\rm body}, R_i, \vec{cg}_i) \\
         !   \boldsymbol{s}_i &= \mathrm{twist}(\hat{k}, \vec{r}_i, 0) \\
-        !   \boldsymbol{v}_i &= \boldsymbol{v}_{i-1} + \boldsymbol{s}_i \dot{q}_i \\
+        !   \boldsymbol{v}_i &= \boldsymbol{v}_{i-1} + \boldsymbol{s}_i \dot{q}_i &
         !   \boldsymbol{\kappa}_i &= \boldsymbol{v}_i \times \boldsymbol{s}_i \dot{q}_i \\
-        !   \boldsymbol{w}_i &= \mathrm{wrench}(m\,\vec{g}, \vec{cg}, 0) \\
+        !   \boldsymbol{w}_i &= \mathrm{wrench}(m\,\vec{g}, \vec{cg}, 0) &
         !   \boldsymbol{p}_i &= \boldsymbol{v}_i \times \bf{I}_i \boldsymbol{v}_i - \boldsymbol{w}_i
         ! \end{aligned}$$
         
-        length = rb%dims(1)
         r_prev = 0.0_wp                                                        
         q_prev = q_eye
         v_prev = 0.0_wp
         do i=1, n
             kin(i)%q = q(i)
             kin(i)%qp = qp(i)
-            kin(i)%tau = tau(i)            
-            kin(i)%pos = r_prev + matmul(rot(q_prev), i_ * length)
-            kin(i)%ori = q_prev .o. rot(k_, q(i))
-            kin(i)%cg = kin(i)%pos + matmul(rot(kin(i)%ori), rb%cg )
+            kin(i)%tau = tau(i)
+            rb => jt(i)%body
+            select case(jt(i)%type)
+            case(revolute_joint)
+                kin(i)%pos = r_prev + rot(q_prev, jt(i)%pos + jt%pitch * jt(i)%axis * q(i))
+                kin(i)%ori = q_prev .o. rot(jt(i)%axis, q(i))
+            case(prismatic_joint)
+                kin(i)%pos = r_prev + rot(q_prev, jt(i)%pos + jt(i)%axis * q(i))
+                kin(i)%ori = q_prev 
+            end select
+            kin(i)%cg = kin(i)%pos + rot(kin(i)%ori, rb%cg )
             kin(i)%spi = s_inertia_matrix(rb%mass,rb%mmoi,kin(i)%ori,kin(i)%cg)
-            kin(i)%s = twist( k_, kin(i)%pos, 0.0_wp)
+            select case(jt(i)%type)
+            case(revolute_joint)
+                kin(i)%s = twist( rot(q_prev, jt(i)%axis), kin(i)%pos, jt(i)%pitch)
+            case(prismatic_joint)
+                kin(i)%s = twist( rot(q_prev, jt(i)%axis) )
+            end select
             kin(i)%v = v_prev + kin(i)%s*qp(i)
             kin(i)%k = s_twist_cross_twist( v_prev, kin(i)%s*qp(i))
             w_i = wrench( rb%mass*gravity, kin(i)%cg, 0.0_wp)
@@ -179,7 +219,7 @@
             v_prev = kin(i)%v            
         end do
     end function
-    
+        
     pure function kin_articulated(kin) result(art)
     type(kinematics), intent(in) :: kin(:)
     type(articulated) :: art(size(kin))
@@ -245,15 +285,15 @@
             error stop "Force Balance Error."
         end if
     end function
-    
-    pure function dyn_chain_rate(rb,q,qp,tau) result(qpp)
+        
+    function jt_acceleration(jt,q,qp,tau) result(qpp)
     ! About: 
     !   Solves a dynamics problem of a serial chain of connected
     !   identical bodies. Uses the recursive articulated inertia method
     !   to solve for the joint accelerations.
     !
     ! Inputs:
-    !   rb:     the rigid body properties for all bodies
+    !   jt:     an array of joints forming a linear chain
     !   q:      vector of joint angles. # of bodies = size(q)
     !   qp:     vector of joint speeds.
     !   tau:    vector of joint torques
@@ -265,19 +305,36 @@
     !   URL:        https://homes.cs.washington.edu/~todorov/courses/amath533/FeatherstoneOrin00.pdf
     !   Title:      Robot Dynamics: Equations and Algorithms
     !   Authors:    Roy Featherstone, David Orin
-    type(rigidbody), intent(in) :: rb
-    real(wp), intent(in) :: q(:), qp(size(q)),tau(size(q))
-    real(wp) :: qpp(size(q))
+    type(joint), intent(in) :: jt(:)
+    real(wp), intent(in) :: q(size(jt)), qp(size(jt)), tau(size(jt))
+    real(wp) :: qpp(size(jt))
     type(kinematics), allocatable :: kin(:)
     type(articulated), allocatable :: art(:)
     type(dynamics), allocatable :: dyn(:)
     
-        kin = rb_kinematics(rb, q, qp, tau)
+        kin = jt_kinematics(jt, q, qp, tau)
         art = kin_articulated(kin)
         dyn = art_dynamics(kin, art)
         
         qpp = dyn(:)%qpp
     
+    end function
+    
+    
+    pure function jt_find_children(parents, index) result(children)
+    integer, intent(in) :: parents(:), index
+    integer , allocatable :: children(:)
+    integer :: i, j, n
+        n = size(parents)
+        allocate(children(n))
+        j = 0
+        do i=1, n
+            if( parents(i)==index) then
+                j = j + 1
+                children(j) = i
+            end if
+        end do
+        children = children(1:j)
     end function
 
     end module

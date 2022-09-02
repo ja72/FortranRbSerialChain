@@ -6,18 +6,21 @@
 !
 !****************************************************************************
 
-    program FortranConsole2
+    program FortranRbSerialChain
     use mod_show
     use mod_screws
     implicit none
-    
+        
     character(len=*), parameter :: fmt = '(a,*(1x,g0.7))'
     integer, parameter :: n_bodies = 6
     ! Variables
+    integer :: i
     real(wp), dimension(n_bodies) :: q,qp,qpp,tau
     real(wp) :: length
-    type(rigidbody) :: rb
-
+    type(rigidbody),target :: rb
+    type(joint) :: joints(n_bodies)
+    !integer, allocatable :: parents(:), children(:)
+        
     ! Body of FortranConsole2
     print *, 'Serial Chain with n=', n_bodies, 'bodies.'
     
@@ -28,30 +31,34 @@
     rb%dims = [ length ]
 
     print *, "Body Properties"
-    print *, "length = ", length
-    print *, "mass = ", rb%mass
-    print *, "mmoi = ", rb%mmoi
-    print *, "cg = ", rb%cg
+    call show("length = ", length)
+    call show("mass = ", rb%mass)
+    call show("mmoi = ", rb%mmoi)
+    call show("cg = ", rb%cg)
+    
+    do i=1,n_bodies
+        if( i==1 ) then
+            joints(i) = rb%joint(revolute_joint, o_, k_)
+        else
+            joints(i) = rb%joint(revolute_joint, length*i_, k_)
+        end if
+    end do
     
     q = 0.0_wp
     qp = 0.0_wp
     tau = 0.0_wp
-    qpp = dyn_chain_rate(rb, q, qp, tau)
+    qpp = jt_acceleration(joints, q, qp, tau)
     
     print *, ''
     print *, " == Serial Chain Dynamics == "
         
-    print *, 'Joint Angles'
-    call show(q)
-    print *, 'Joint Speeds'
-    call show(qp)
-    print *, 'Joint Torques'
-    call show(tau)
-    print *, 'Joint Accelerations'
-    call show(qpp)
+    call show("q=", q)
+    call show("qp=", qp)
+    call show("tau=", tau)
+    call show("qpp=", qpp)
     
     contains
     
 
-    end program FortranConsole2
+    end program FortranRbSerialChain
 

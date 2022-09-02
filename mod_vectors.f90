@@ -35,7 +35,7 @@
     end interface
 
     interface rot
-    module procedure :: q_to_rotation, q_axis_angle
+    module procedure :: q_to_rotation, q_axis_angle, q_rotate_vector
     end interface
 
     contains
@@ -113,6 +113,16 @@
         s = -s
     end if
     R = eye_ + 2*s*kx + 2*kxkx
+    end function
+    
+    pure function q_rotate_vector(q, x) result(y)
+    real(wp), intent(in) :: q(4), x(3)
+    real(wp) :: y(3), kx(3), kxkx(3), s, v(3)
+        s = q(4)
+        v = q(1:3)
+        kx = v .x. x
+        kxkx = v .x. kx
+        y = x + 2*s*kx + 2*kxkx
     end function
 
     pure function q_product(a,b) result(q)
