@@ -49,9 +49,10 @@
 		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
 		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
 		<File RelativePath=".\FortranRbSerialChain.f90"/>
-		<File RelativePath=".\mod_vectors.f90"/>
+		<File RelativePath=".\mod_joints.f90"/>
 		<File RelativePath=".\mod_lu.f90"/>
-		<File RelativePath=".\mod_screws.f90"/>
 		<File RelativePath=".\mod_ode.f90"/>
-		<File RelativePath=".\mod_show.f90"/></Filter></Files>
+		<File RelativePath=".\mod_screws.f90"/>
+		<File RelativePath=".\mod_show.f90"/>
+		<File RelativePath=".\mod_vectors.f90"/></Filter></Files>
 	<Globals/></VisualStudioProject>

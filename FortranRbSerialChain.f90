@@ -8,20 +8,20 @@
 
     program FortranRbSerialChain
     use mod_show
-    use mod_screws
+    use mod_joints
     implicit none
         
     character(len=*), parameter :: fmt = '(a,*(1x,g0.7))'
     integer, parameter :: n_bodies = 6
     ! Variables
     integer :: i
-    real(wp), dimension(n_bodies) :: q,qp,qpp,tau
+    type(state) :: st(n_bodies)
     real(wp) :: length
     type(rigidbody),target :: rb
-    type(joint) :: joints(n_bodies)
+    type(joint) :: joints(size(st))
     !integer, allocatable :: parents(:), children(:)
         
-    ! Body of FortranConsole2
+    ! Body of FortranRbSerialChain
     print *, 'Serial Chain with n=', n_bodies, 'bodies.'
     
     length = 0.25_wp
@@ -38,24 +38,24 @@
     
     do i=1,n_bodies
         if( i==1 ) then
-            joints(i) = rb%joint(revolute_joint, o_, k_)
+            joints(i) = joint(rb, revolute_joint, o_, k_)
         else
-            joints(i) = rb%joint(revolute_joint, length*i_, k_)
+            joints(i) = joint(rb, revolute_joint, length*i_, k_)
         end if
     end do
+    st = [ (state(dynamic_joint, known=0.0_wp), i=1, n_bodies) ]
+    st(1)%status = kinematic_joint
+    st(1)%qpp = 50.0_wp
     
-    q = 0.0_wp
-    qp = 0.0_wp
-    tau = 0.0_wp
-    qpp = jt_acceleration(joints, q, qp, tau)
+    st = solve_chain(joints, st)
     
     print *, ''
     print *, " == Serial Chain Dynamics == "
         
-    call show("q=", q)
-    call show("qp=", qp)
-    call show("tau=", tau)
-    call show("qpp=", qpp)
+    call show("q=", st(:)%q)
+    call show("qp=", st(:)%qp)
+    call show("tau=", st(:)%tau)
+    call show("qpp=", st(:)%qpp)
     
     contains
     
