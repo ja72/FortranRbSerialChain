@@ -7,11 +7,14 @@ Serial RB chain solver using articulated method with arrays.
 
 For each body the following equations are needed for the problem to be defined. 
 
- - The kinematics relating the motion of the previous body to the motion 
+ - The velocity kinematics relating the motion of the previous body to the motion 
 of the current body.
 
     $$ \boldsymbol{v}_{i} =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}\dot{q}_{i} $$
-    $$ \boldsymbol{a}_{i} =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}\dot{q}_{i}$$
+    
+ - The acceleration kinematics recursion
+    
+    $$ \boldsymbol{a}_{i} =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}\dot{q}_{i} $$
 
  - The force balance for each body, considering the reaction force coming from the next body.
  
