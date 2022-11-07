@@ -10,9 +10,8 @@ For each body the following equations are needed for the problem to be defined.
  - The kinematics relating the motion of the previous body to the motion 
 of the current body.
 
-    $$ \begin{aligned}\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}qp_{i}\\
-\boldsymbol{a}_{i} & =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}qp_{i}\\
-\end{aligned}$$
+    $$ \boldsymbol{v}_{i} =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}\dot{q}_{i} $$
+    $$ \boldsymbol{a}_{i} =\boldsymbol{a}_{i-1}+\boldsymbol{s}_{i}\ddot{q}_{i}+\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}\dot{q}_{i}$$
 
  - The force balance for each body, considering the reaction force coming from the next body.
  
@@ -38,8 +37,8 @@ $$\begin{aligned}\vec{r}_{i} & =\vec{r}_{i-1}+R_{i-1}\vec{\ell}\\
 \vec{cg}_{i} & =\vec{r}_{i}+R_{i}\vec{cg}_{{\rm body}}\\
 {\bf I}_{i} & =\mathrm{spi}(m,I_{{\rm body}},R_{i},\vec{cg}_{i})\\
 \boldsymbol{s}_{i} & =\mathrm{twist}(\hat{k},\vec{r}_{i},0)\\
-\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i}qp_{i}\\
-\boldsymbol{\kappa}_{i} & =\boldsymbol{v}_{i}\times\boldsymbol{s}_{i}qp_{i}\\
+\boldsymbol{v}_{i} & =\boldsymbol{v}_{i-1}+\boldsymbol{s}_{i} \dot{q}_{i}\\
+\boldsymbol{\kappa}_{i} & =\boldsymbol{v}_{i}\times\boldsymbol{s}_{i} \dot{q}_{i}\\
 \boldsymbol{w}_{i} & =\mathrm{wrench}(m\,\vec{g},\vec{cg},0)\\
 \boldsymbol{p}_{i} & =\boldsymbol{v}_{i}\times{\bf I}_{i}\boldsymbol{v}_{i}-\boldsymbol{w}_{i}
 \end{aligned}$$
